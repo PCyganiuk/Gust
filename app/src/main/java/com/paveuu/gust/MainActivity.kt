@@ -14,8 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.BottomAppBar
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -45,7 +44,7 @@ class MainActivity : ComponentActivity() {
                     bottomBar = { BottomNavBar() }
                 ) {
                     contentPadding ->
-                    Column (
+                    Box (
                         modifier = Modifier.padding(contentPadding)
                     ) {
                         Text("Pawcio",
@@ -61,18 +60,18 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun BottomNavBar() {
     var selectedItem by remember { mutableIntStateOf(0) }
-    val items = listOf("Home", "Search", "Profile")
+    val items = listOf("Start", "Config", "My info")
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp) // floating from sides
+            .padding(horizontal = 4.dp) // floating from sides
             .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()) // above nav bar
     ) {
 
         NavigationBar(
             modifier = Modifier
-                .padding(16.dp) // 👈 space from all screen edges
+                .padding(2.dp) // 👈 space from all screen edges
                 .clip(RoundedCornerShape(24.dp)) // 👈 rounded corners
                 .shadow(
                     elevation = 12.dp,
@@ -87,9 +86,9 @@ fun BottomNavBar() {
                 NavigationBarItem(
                     icon = {
                         when (item) {
-                            "Home" -> Icon(Icons.Default.Home, contentDescription = item)
-                            "Search" -> Icon(Icons.Default.Search, contentDescription = item)
-                            "Profile" -> Icon(Icons.Default.Person, contentDescription = item)
+                            "Start" -> Icon(Icons.Default.Home, contentDescription = item)
+                            "Config" -> Icon(Icons.Default.Settings, contentDescription = item)
+                            "My info" -> Icon(Icons.Default.Person, contentDescription = item)
                         }
                     },
                     label = { Text(item) },
@@ -99,6 +98,23 @@ fun BottomNavBar() {
             }
         }
     }
+}
+
+
+@Composable
+fun CarouselExcerciseCards(){
+    data class CarouselItem(
+        // Everything is in seconds
+        val id: Int,
+        val numOfRounds: Int,
+        val name: String,
+        val breathCyclesInRound: Int,
+        val secondsToHold: Int,
+        val breathPacing: Int,
+        val holdFor: Int,
+        val holdAfter: Boolean, // True - inhale False - Exhale
+        val duration: Int
+    )
 }
 
 
