@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-10-05T12:29:50.550017100Z">
+        <DropdownSelection timestamp="2025-10-07T09:22:26.553188478Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=DENRQ855FMVKAEAE" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=/home/pyza/.android/avd/Medium_Phone.avd" />
             </handle>
           </Target>
         </DropdownSelection>
