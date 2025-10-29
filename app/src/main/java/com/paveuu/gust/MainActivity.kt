@@ -57,9 +57,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.padding(contentPadding)
                     ) {
                         CarouselExample_MultiBrowse()
-                        Text("Pawcio",
-                            style = MaterialTheme.typography.titleLarge, // uses your font
-                            color = MaterialTheme.colorScheme.primary)
+
                     }
                 }
             }
@@ -92,7 +90,7 @@ fun BottomNavBar() {
             containerColor = MaterialTheme.colorScheme.primaryContainer, // 👈 better contrast color
             tonalElevation = 8.dp // 👈 adds Material-style elevation glow
         ){
-            CarouselExample_MultiBrowse()
+            //CarouselExample_MultiBrowse()
             items.forEachIndexed { index, item ->
                 NavigationBarItem(
                     icon = {
@@ -113,7 +111,7 @@ fun BottomNavBar() {
 
 
 @Composable
-fun CarouselExcerciseCards(){
+fun CarouselExerciseCards(){
     data class CarouselItem(
         // Everything is in seconds
         val id: Int,
@@ -154,53 +152,60 @@ fun CarouselExample_MultiBrowse() {
             .padding(vertical = 16.dp),
         preferredItemWidth = 186.dp,
         itemSpacing = 8.dp,
-        contentPadding = PaddingValues(horizontal = 16.dp)
+        contentPadding = PaddingValues(horizontal = 16.dp),
     ) { i ->
-        val item = items[i]
-
-        Card(
+        Box(
             modifier = Modifier
-                .height(205.dp)
-                .fillMaxWidth(),
-            shape = MaterialTheme.shapes.extraLarge,
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+                .fillMaxHeight()
+                .maskClip(MaterialTheme.shapes.extraLarge),
+            contentAlignment = Alignment.Center
         ) {
-            Column(
+            val item = items[i]
+
+            Card(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceBetween
+                    .height(205.dp)
+                    .fillMaxWidth(),
+                shape = MaterialTheme.shapes.extraLarge,
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
-                Text(
-                    text = item.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                // Canvas drawable section
-                Canvas(
+                Column(
                     modifier = Modifier
-                        .size(120.dp)
-                        .padding(top = 8.dp)
+                        .fillMaxSize()
+                        .padding(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Example: Draw a circle and a triangle
-                    drawCircle(
-                        color = item.color,
-                        radius = size.minDimension / 4,
-                        center = center
+                    Text(
+                        text = item.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
                     )
 
-                    drawPath(
-                        path = Path().apply {
-                            moveTo(size.width / 2, size.height / 4)
-                            lineTo(size.width / 4, size.height * 3 / 4)
-                            lineTo(size.width * 3 / 4, size.height * 3 / 4)
-                            close()
-                        },
-                        color = Color.Black.copy(alpha = 0.3f)
-                    )
+                    // Canvas drawable section
+                    Canvas(
+                        modifier = Modifier
+                            .size(120.dp)
+                            .padding(top = 8.dp)
+                    ) {
+                        // Example: Draw a circle and a triangle
+                        drawCircle(
+                            color = item.color,
+                            radius = size.minDimension / 4,
+                            center = center
+                        )
+
+                        drawPath(
+                            path = Path().apply {
+                                moveTo(size.width / 2, size.height / 4)
+                                lineTo(size.width / 4, size.height * 3 / 4)
+                                lineTo(size.width * 3 / 4, size.height * 3 / 4)
+                                close()
+                            },
+                            color = Color.Black.copy(alpha = 0.3f)
+                        )
+                    }
                 }
             }
         }
