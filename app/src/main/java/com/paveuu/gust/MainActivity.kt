@@ -4,10 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -16,8 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,12 +21,11 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
+import androidx.compose.material3.carousel.HorizontalCenteredHeroCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -38,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.paveuu.gust.ui.theme.GustTheme
@@ -73,24 +67,23 @@ fun BottomNavBar() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp) // floating from sides
-            .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()) // above nav bar
+            .padding(horizontal = 4.dp)
+            .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
     ) {
 
         NavigationBar(
             modifier = Modifier
-                .padding(2.dp) // 👈 space from all screen edges
-                .clip(RoundedCornerShape(24.dp)) // 👈 rounded corners
+                .padding(2.dp)
+                .clip(RoundedCornerShape(24.dp))
                 .shadow(
                     elevation = 12.dp,
                     shape = RoundedCornerShape(24.dp),
                     clip = false
                 )
-                .background(MaterialTheme.colorScheme.surface), // 👈 background for elevation contrast
-            containerColor = MaterialTheme.colorScheme.primaryContainer, // 👈 better contrast color
-            tonalElevation = 8.dp // 👈 adds Material-style elevation glow
+                .background(MaterialTheme.colorScheme.surface),
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            tonalElevation = 8.dp
         ){
-            //CarouselExample_MultiBrowse()
             items.forEachIndexed { index, item ->
                 NavigationBarItem(
                     icon = {
@@ -134,6 +127,7 @@ fun CarouselExample_MultiBrowse() {
         val color: Color
     )
 
+
     val items = remember {
         listOf(
             CarouselItem(0, "Cupcake", Color(0xFFFFC1E3)),
@@ -143,71 +137,39 @@ fun CarouselExample_MultiBrowse() {
             CarouselItem(4, "Gingerbread", Color(0xFFFF9E80))
         )
     }
-
-    HorizontalMultiBrowseCarousel(
+    HorizontalCenteredHeroCarousel(
         state = rememberCarouselState { items.count() },
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
             .padding(vertical = 16.dp),
-        preferredItemWidth = 186.dp,
         itemSpacing = 8.dp,
         contentPadding = PaddingValues(horizontal = 16.dp),
     ) { i ->
+        val item = items[i]
         Box(
             modifier = Modifier
-                .fillMaxHeight()
+                .height(300.dp)
                 .maskClip(MaterialTheme.shapes.extraLarge),
             contentAlignment = Alignment.Center
         ) {
-            val item = items[i]
 
-            Card(
+            Box(
                 modifier = Modifier
-                    .height(205.dp)
-                    .fillMaxWidth(),
-                shape = MaterialTheme.shapes.extraLarge,
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = item.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
+                    .fillMaxSize()
+                    .background(
+                        color = MaterialTheme.colorScheme.secondary,
+                        shape = MaterialTheme.shapes.extraLarge
                     )
+            )
 
-                    // Canvas drawable section
-                    Canvas(
-                        modifier = Modifier
-                            .size(120.dp)
-                            .padding(top = 8.dp)
-                    ) {
-                        // Example: Draw a circle and a triangle
-                        drawCircle(
-                            color = item.color,
-                            radius = size.minDimension / 4,
-                            center = center
-                        )
 
-                        drawPath(
-                            path = Path().apply {
-                                moveTo(size.width / 2, size.height / 4)
-                                lineTo(size.width / 4, size.height * 3 / 4)
-                                lineTo(size.width * 3 / 4, size.height * 3 / 4)
-                                close()
-                            },
-                            color = Color.Black.copy(alpha = 0.3f)
-                        )
-                    }
-                }
-            }
+            Text(
+                text = "Training ${i + 1}\n" + item.title,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White,
+                modifier = Modifier.padding(16.dp)
+            )
         }
     }
 }
@@ -218,7 +180,16 @@ fun CarouselExample_MultiBrowse() {
 @Composable
 fun GreetingPreview() {
     GustTheme {
-        CarouselExample_MultiBrowse()
-        BottomNavBar()
+        Scaffold (
+            bottomBar = { BottomNavBar() }
+        ) {
+                contentPadding ->
+            Box (
+                modifier = Modifier.padding(contentPadding)
+            ) {
+                CarouselExample_MultiBrowse()
+
+            }
+        }
     }
 }
