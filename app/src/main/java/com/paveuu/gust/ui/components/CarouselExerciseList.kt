@@ -1,5 +1,6 @@
 package com.paveuu.gust.ui.components
 
+import android.content.Intent
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -50,7 +52,10 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.paveuu.gust.WorkoutSessionActivity
 import com.paveuu.gust.WorkoutViewModel
 import kotlin.math.cos
 import kotlin.math.sin
@@ -89,12 +94,22 @@ fun CarouselExerciseList(viewModel: WorkoutViewModel) {
     ) { i ->
         val item = items[i]
         val isFocused = carouselState.currentItem == i
+        val context = LocalContext.current
         Box(
             modifier = Modifier
-                .height(300.dp)
+                .fillMaxWidth()
+                .aspectRatio(1f)
                 .maskClip(MaterialTheme.shapes.extraLarge)
                 .clickable{
-                    if (item.id == -1) showAddDialog = true
+                    if (viewModel.isAddButton(item.id)) {
+                        showAddDialog = true
+                    }
+                    else{
+                        val intent = Intent(context, WorkoutSessionActivity::class.java).apply {
+                            putExtra("workoutId", item.id)
+                        }
+                        context.startActivity(intent)
+                    }
                 },
             contentAlignment = Alignment.Center
         ) {
@@ -107,34 +122,35 @@ fun CarouselExerciseList(viewModel: WorkoutViewModel) {
                     )
             )
 
-            if (item.id == -1) {
+            if (viewModel.isAddButton(item.id)) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Add Workout",
-                    tint = Color.White,
-                    modifier = Modifier.size(48.dp)
+                    tint = MaterialTheme.colorScheme.inversePrimary,
+                    modifier = Modifier.size(124.dp)
                 )
-            } else {
+            }
+            else {
                 WavyBreathingCircle(item = item, animate = isFocused)
 
                 Text(
                     text = item.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.White,
+                    style = MaterialTheme.typography.displaySmall,
+                    color = MaterialTheme.colorScheme.inversePrimary,
                     modifier = Modifier.align(Alignment.TopCenter)
                 )
 
                 Text(
                     text = item.numOfRounds.toString() + " X " + item.breathCyclesInRound.toString(),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 36.sp),
+                    color = MaterialTheme.colorScheme.inversePrimary,
                     modifier = Modifier.align(Alignment.Center)
                 )
 
                 Text(
                     text = "≈" + (item.duration/60).toString()+ " mins",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 20.sp),
+                    color = MaterialTheme.colorScheme.inversePrimary,
                     modifier = Modifier.align(Alignment.BottomCenter)
                 )
             }
@@ -268,7 +284,6 @@ fun AddWorkoutDialog(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WavyBreathingCircle(item: CarouselItem, animate: Boolean) {
-    val canvasSize = 300.dp
 
     val progress by if (animate) {
         val infiniteTransition = rememberInfiniteTransition()
@@ -284,10 +299,10 @@ fun WavyBreathingCircle(item: CarouselItem, animate: Boolean) {
         remember { mutableFloatStateOf(0f) }
     }
 
-    Canvas(modifier = Modifier.size(canvasSize)) {
+    Canvas(modifier = Modifier.fillMaxSize()) {
         val center = Offset(size.width / 2f, size.height / 2f)
         val radius = size.minDimension / 3.5f
-        val waveAmplitude = radius / 4f
+        val waveAmplitude = radius / 20f
         val waveCount = item.breathCyclesInRound
         val segments = 360
 
@@ -315,13 +330,22 @@ fun WavyBreathingCircle(item: CarouselItem, animate: Boolean) {
             close()
         }
 
-        drawPath(path, color = item.color, style = Stroke(width = 3.dp.toPx()))
+        drawPath(path, color = item.color, style = Stroke(width = 7.dp.toPx()))
 
         val pathMeasure = PathMeasure()
         pathMeasure.setPath(path, false)
         val pathLength = pathMeasure.length
         val pos: Offset = pathMeasure.getPosition(progress * pathLength)
 
-        drawCircle(Color.White, radius = 3.dp.toPx(), center = pos)
+        drawCircle(item.color.darken(), radius = 3.5f.dp.toPx(), center = pos)
     }
+}
+
+fun Color.darken(factor: Float = 0.5f): Color {
+    return Color(
+        red = this.red * factor,
+        green = this.green * factor,
+        blue = this.blue * factor,
+        alpha = this.alpha
+    )
 }
