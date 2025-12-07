@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.Scaffold
@@ -35,6 +37,7 @@ import com.paveuu.gust.ui.theme.GustTheme
 import com.paveuu.gust.data.WorkoutDatabase
 import com.paveuu.gust.data.WorkoutRepository
 import com.paveuu.gust.ui.components.darken
+import kotlinx.coroutines.isActive
 import kotlin.math.PI
 import kotlin.math.sin
 
@@ -66,7 +69,7 @@ fun WorkoutSessionScreen(viewModel: WorkoutViewModel, workoutId: Int) {
     val workout = items.firstOrNull { it.id == workoutId } ?: return Text("Not found")
 
     var breaths by remember { mutableIntStateOf(0) }
-
+    var isAnimating by remember { mutableStateOf(false) } // <--- Animation state
     Scaffold { pad ->
         Column(
             Modifier
@@ -85,14 +88,27 @@ fun WorkoutSessionScreen(viewModel: WorkoutViewModel, workoutId: Int) {
             WaveWithCenterDotTracking(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(),
-                    //.height(500.dp),
-                workout
+                    //.fillMaxHeight(),
+                    .height(500.dp),
+                workout = workout,
+                isAnimating = isAnimating,
+                onBreath = {
+                    if (breaths < workout.breathCyclesInRound) {
+                        breaths += 1
+                    }
+                }
             )
 
             Spacer(Modifier.height(32.dp))
 
-            Text("Breaths: $breaths / ${workout.numOfRounds}", fontSize = 22.sp)
+            Text(
+                text = "Breaths: $breaths / ${workout.breathCyclesInRound}",
+                fontSize = 22.sp)
+            Button(onClick = {
+                isAnimating = !isAnimating // <--- Toggle animation
+            }) {
+                Text(if (isAnimating) "Stop workout" else "Start workout")
+            }
         }
     }
 }
@@ -100,19 +116,37 @@ fun WorkoutSessionScreen(viewModel: WorkoutViewModel, workoutId: Int) {
 @Composable
 fun WaveWithCenterDotTracking(
     modifier: Modifier = Modifier,
-    workout: CarouselItem
+    workout: CarouselItem,
+    isAnimating: Boolean,
+    onBreath: () -> Unit
 ) {
-    val waveTransition = rememberInfiniteTransition()
+    var waveOffset by remember { mutableFloatStateOf(0f) }
+    var lastDotT by remember { mutableFloatStateOf(0f) }
+    // Launch or stop animation based on isAnimating
+    LaunchedEffect(isAnimating) {
+        if (isAnimating) {
+            var lastTime = 0L
+            while (isActive && isAnimating) {
+                withFrameMillis { time ->
+                    if (lastTime != 0L) {
+                        val delta = (time - lastTime) / 2000f // duration in ms
+                        waveOffset = (waveOffset + delta) % 1f
 
-    // Wave horizontal scroll 0 → 1 repeatedly
-    val waveOffset by waveTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            tween(workout.breathPacing * 1000, easing = LinearEasing),
-            RepeatMode.Restart
-        )
-    )
+                        // Detect when dot reaches the top (middleT % 1 ~ 0.25 for sin wave max)
+                        val middleT = 0.5f // dot is at centerX, sin reaches max at 0.25
+                        val currentDotT = (middleT + waveOffset) % 1f
+
+                        // Detect crossing from below to above 0.25
+                        if (lastDotT < 0.25f && currentDotT >= 0.25f) {
+                            onBreath()
+                        }
+                        lastDotT = currentDotT
+                    }
+                    lastTime = time
+                }
+            }
+        }
+    }
 
     Canvas(modifier = modifier) {
 
