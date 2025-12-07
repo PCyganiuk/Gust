@@ -11,20 +11,25 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -68,8 +73,8 @@ fun WorkoutSessionScreen(viewModel: WorkoutViewModel, workoutId: Int) {
     val items by viewModel.items.collectAsState()
     val workout = items.firstOrNull { it.id == workoutId } ?: return Text("Not found")
 
-    var breaths by remember { mutableIntStateOf(0) }
-    var isAnimating by remember { mutableStateOf(false) } // <--- Animation state
+    var breaths by remember { mutableIntStateOf(-1) }
+    var isAnimating by remember { mutableStateOf(false) }
     Scaffold { pad ->
         Column(
             Modifier
@@ -84,7 +89,6 @@ fun WorkoutSessionScreen(viewModel: WorkoutViewModel, workoutId: Int) {
             )
 
             Spacer(Modifier.height(32.dp))
-
             WaveWithCenterDotTracking(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -92,6 +96,7 @@ fun WorkoutSessionScreen(viewModel: WorkoutViewModel, workoutId: Int) {
                     .height(500.dp),
                 workout = workout,
                 isAnimating = isAnimating,
+                breaths = breaths,
                 onBreath = {
                     if (breaths < workout.breathCyclesInRound) {
                         breaths += 1
@@ -100,14 +105,29 @@ fun WorkoutSessionScreen(viewModel: WorkoutViewModel, workoutId: Int) {
             )
 
             Spacer(Modifier.height(32.dp))
-
             Text(
-                text = "Breaths: $breaths / ${workout.breathCyclesInRound}",
-                fontSize = 22.sp)
-            Button(onClick = {
-                isAnimating = !isAnimating // <--- Toggle animation
+                text = "$breaths / ${workout.breathCyclesInRound}",
+                fontSize = 22.sp,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .alpha(if (breaths != -1) 1f else 0f)
+                    .padding(20.dp)
+            )
+            OutlinedButton(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .fillMaxWidth()
+                    .height(100.dp),
+                border = BorderStroke(3.dp,MaterialTheme.colorScheme.primary),
+                onClick = {
+                isAnimating = !isAnimating
             }) {
-                Text(if (isAnimating) "Stop workout" else "Start workout")
+                Text(
+                    style = MaterialTheme.typography.displayMedium,
+                    color = if (isAnimating) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                    text = if (isAnimating) "Stop workout" else "Start workout")
             }
         }
     }
@@ -118,15 +138,48 @@ fun WaveWithCenterDotTracking(
     modifier: Modifier = Modifier,
     workout: CarouselItem,
     isAnimating: Boolean,
+    breaths: Int,
     onBreath: () -> Unit
 ) {
-    var waveOffset by remember { mutableFloatStateOf(0f) }
+    var waveOffset by remember { mutableFloatStateOf(0.75f) }
     var lastDotT by remember { mutableFloatStateOf(0f) }
+
+    val flattenAfterBreaths = workout.breathCyclesInRound // when to flatten
+
+    var flattenProgress by remember { mutableFloatStateOf(0f) } // 0=sine, 1=flat
+    LaunchedEffect(breaths) {
+        if (breaths >= flattenAfterBreaths) {
+            // Smoothly animate to 1
+            while (flattenProgress < 1f) {
+                flattenProgress += 0.02f
+                if (flattenProgress > 1f) flattenProgress = 1f
+                kotlinx.coroutines.delay(16)
+            }
+        } else {
+            flattenProgress = 0f
+        }
+    }
+
+    val dotPulse = remember { Animatable(1f) }
+    LaunchedEffect(isAnimating, breaths) {
+        if (isAnimating && breaths >= flattenAfterBreaths) {
+            dotPulse.animateTo(
+                targetValue = 1.2f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(600, easing = LinearEasing),
+                    repeatMode = RepeatMode.Reverse
+                )
+            )
+        } else {
+            dotPulse.snapTo(1f)
+        }
+    }
+
     // Launch or stop animation based on isAnimating
     LaunchedEffect(isAnimating) {
         if (isAnimating) {
             var lastTime = 0L
-            while (isActive && isAnimating) {
+            while (isActive) {
                 withFrameMillis { time ->
                     if (lastTime != 0L) {
                         val delta = (time - lastTime) / 2000f // duration in ms
@@ -165,7 +218,10 @@ fun WaveWithCenterDotTracking(
             val x = i * dx
             val t = (x / w + waveOffset) % 1f
 
-            val y = centerY + amplitude * sin(2f * PI.toFloat() * t)
+            // Smooth interpolation between sine wave and flat
+            val sineY = centerY + amplitude * sin(2f * PI.toFloat() * t)
+            val flatY = centerY - amplitude
+            val y = sineY * (1f - flattenProgress) + flatY * flattenProgress
 
             if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
         }
@@ -180,11 +236,12 @@ fun WaveWithCenterDotTracking(
         )
 
         val middleT = ((centerX / w) + waveOffset) % 1f
-        val dotY = centerY + amplitude * sin(2f * PI.toFloat() * middleT)
+        val dotY = (centerY + amplitude * sin(2f * PI.toFloat() * middleT)) * (1f - flattenProgress) +
+                (centerY - amplitude) * flattenProgress
         val radius = 50f //@TODO dodaj dynamiczną kropkę
         drawCircle(
             color = workout.color.darken(),
-            radius = radius,
+            radius = radius * dotPulse.value,
             center = Offset(centerX, dotY)
         )
     }
