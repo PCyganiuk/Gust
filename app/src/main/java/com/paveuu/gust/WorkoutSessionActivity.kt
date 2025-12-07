@@ -17,19 +17,24 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.paveuu.gust.data.CarouselItem
 import com.paveuu.gust.ui.theme.GustTheme
 import com.paveuu.gust.data.WorkoutDatabase
 import com.paveuu.gust.data.WorkoutRepository
+import com.paveuu.gust.ui.components.darken
 import kotlin.math.PI
 import kotlin.math.sin
 
@@ -68,7 +73,12 @@ fun WorkoutSessionScreen(viewModel: WorkoutViewModel, workoutId: Int) {
                 .padding(pad)
                 .padding(24.dp)
         ) {
-            Text(workout.title, fontSize = 28.sp)
+            Text(
+                text = workout.title,
+                style = MaterialTheme.typography.displaySmall,
+                color = MaterialTheme.colorScheme.inversePrimary,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
 
             Spacer(Modifier.height(32.dp))
 
@@ -77,9 +87,8 @@ fun WorkoutSessionScreen(viewModel: WorkoutViewModel, workoutId: Int) {
                     .fillMaxWidth()
                     .fillMaxHeight(),
                     //.height(500.dp),
-                waveSpeed = 5000
+                workout
             )
-
 
             Spacer(Modifier.height(32.dp))
 
@@ -91,7 +100,7 @@ fun WorkoutSessionScreen(viewModel: WorkoutViewModel, workoutId: Int) {
 @Composable
 fun WaveWithCenterDotTracking(
     modifier: Modifier = Modifier,
-    waveSpeed: Int = 3000
+    workout: CarouselItem
 ) {
     val waveTransition = rememberInfiniteTransition()
 
@@ -100,7 +109,7 @@ fun WaveWithCenterDotTracking(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            tween(waveSpeed, easing = LinearEasing),
+            tween(workout.breathPacing * 1000, easing = LinearEasing),
             RepeatMode.Restart
         )
     )
@@ -120,27 +129,28 @@ fun WaveWithCenterDotTracking(
 
         for (i in 0..points) {
             val x = i * dx
-            val t = (x / w + waveOffset) % 1f   // wave scrolling
+            val t = (x / w + waveOffset) % 1f
 
             val y = centerY + amplitude * sin(2f * PI.toFloat() * t)
 
             if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
         }
 
-        // Draw wave
         drawPath(
             path = path,
-            color = Color.Cyan,
-            style = Stroke(width = 80f)
+            color = workout.color,
+            style = Stroke(
+                width = 80f,
+                cap = StrokeCap.Round
+            )
         )
 
-        // DOT tracks wave in the middle
         val middleT = ((centerX / w) + waveOffset) % 1f
         val dotY = centerY + amplitude * sin(2f * PI.toFloat() * middleT)
-
+        val radius = 50f //@TODO dodaj dynamiczną kropkę
         drawCircle(
-            color = Color.White,
-            radius = 14f,
+            color = workout.color.darken(),
+            radius = radius,
             center = Offset(centerX, dotY)
         )
     }
