@@ -57,10 +57,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.paveuu.gust.WorkoutSessionActivity
 import com.paveuu.gust.WorkoutViewModel
+import com.paveuu.gust.data.Stage
 import kotlin.math.cos
 import kotlin.math.sin
 
-import com.paveuu.gust.data.CarouselItem
+import com.paveuu.gust.data.Workout
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -139,14 +140,14 @@ fun CarouselExerciseList(viewModel: WorkoutViewModel) {
                     color = MaterialTheme.colorScheme.inversePrimary,
                     modifier = Modifier.align(Alignment.TopCenter)
                 )
-
+/*
                 Text(
                     text = item.numOfRounds.toString() + " X " + item.breathCyclesInRound.toString(),
                     style = MaterialTheme.typography.bodyLarge.copy(fontSize = 36.sp),
                     color = MaterialTheme.colorScheme.inversePrimary,
                     modifier = Modifier.align(Alignment.Center)
                 )
-
+*/
                 Text(
                     text = "≈" + (item.duration/60).toString()+ " mins",
                     style = MaterialTheme.typography.bodyLarge.copy(fontSize = 20.sp),
@@ -182,19 +183,25 @@ fun ColorPickerRow(
     }
 }
 
-
 @Composable
 fun AddWorkoutDialog(
     onDismiss: () -> Unit,
-    onConfirm: (CarouselItem) -> Unit
+    onConfirm: (Workout) -> Unit
 ) {
     var title by remember { mutableStateOf("") }
-    var rounds by remember { mutableStateOf("3") }
-    var breaths by remember { mutableStateOf("30") }
-    var pacing by remember { mutableStateOf("14") }
+    var selectedColor by remember { mutableStateOf(Color(0xFFFFC1E3)) }
 
-    // Colors to choose from
-    val colorOptions = listOf(
+    // Stage input fields
+    var breathIn by remember { mutableStateOf("") }
+    var hold by remember { mutableStateOf("") }
+    var breathOut by remember { mutableStateOf("") }
+    var regenerate by remember { mutableStateOf("") }
+    var reps by remember { mutableStateOf("") }
+
+    // List of stages added
+    var stages by remember { mutableStateOf(listOf<Stage>()) }
+
+    val colors = listOf(
         Color(0xFFFFC1E3),
         Color(0xFFFFD180),
         Color(0xFF80D8FF),
@@ -203,76 +210,123 @@ fun AddWorkoutDialog(
         Color(0xFFB39DDB),
         Color(0xFF90CAF9)
     )
-    var selectedColor by remember { mutableStateOf(colorOptions.first()) }
 
-    // Validation
-    val titleValid = title.isNotBlank()
-    val roundsValid = rounds.toIntOrNull()?.let { it >= 1 } == true
-    val breathsValid = breaths.toIntOrNull()?.let { it >= 10 } == true
-    val pacingValid = pacing.toIntOrNull()?.let { it >= 1 } == true
-
-    val allValid = titleValid && roundsValid && breathsValid && pacingValid
+    fun stageFieldsValid(): Boolean {
+        return breathIn.toIntOrNull() != null &&
+                hold.toIntOrNull() != null &&
+                breathOut.toIntOrNull() != null &&
+                regenerate.toIntOrNull() != null &&
+                reps.toIntOrNull()?.let { it >= 1 } == true
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add New Workout") },
+        title = { Text("Create Workout") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
+                // Title
                 TextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Title") },
-                    isError = !titleValid
+                    label = { Text("Workout Title") }
                 )
 
-                TextField(
-                    value = rounds,
-                    onValueChange = { rounds = it },
-                    label = { Text("Rounds (≥1)") },
-                    isError = !roundsValid
-                )
+                Spacer(modifier = Modifier.height(4.dp))
 
-                TextField(
-                    value = breaths,
-                    onValueChange = { breaths = it },
-                    label = { Text("Breaths per Round (≥10)") },
-                    isError = !breathsValid
-                )
+                // Stage editor
+                Text("Add Stage", style = MaterialTheme.typography.titleMedium)
 
-                TextField(
-                    value = pacing,
-                    onValueChange = { pacing = it },
-                    label = { Text("Breath Pacing (seconds ≥1)") },
-                    isError = !pacingValid
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextField(
+                        value = breathIn,
+                        onValueChange = { breathIn = it },
+                        label = { Text("Breath In (sec)") }
+                    )
+                    TextField(
+                        value = hold,
+                        onValueChange = { hold = it },
+                        label = { Text("Hold (sec)") }
+                    )
+                    TextField(
+                        value = breathOut,
+                        onValueChange = { breathOut = it },
+                        label = { Text("Breath Out (sec)") }
+                    )
+                    TextField(
+                        value = regenerate,
+                        onValueChange = { regenerate = it },
+                        label = { Text("Regenerate (sec)") }
+                    )
+                    TextField(
+                        value = reps,
+                        onValueChange = { reps = it },
+                        label = { Text("Reps (≥1)") }
+                    )
 
-                Spacer(Modifier.height(8.dp))
-                Text("Color:")
+                    TextButton(
+                        enabled = stageFieldsValid(),
+                        onClick = {
+                            stages = stages + Stage(
+                                breathInSeconds = breathIn.toInt(),
+                                holdSeconds = hold.toInt(),
+                                breathOutSeconds = breathOut.toInt(),
+                                regenerateSeconds = regenerate.toInt(),
+                                reps = reps.toInt()
+                            )
+                            // clear inputs
+                            breathIn = ""
+                            hold = ""
+                            breathOut = ""
+                            regenerate = ""
+                            reps = ""
+                        }
+                    ) { Text("Add Stage") }
 
-                ColorPickerRow(
-                    colors = colorOptions,
-                    selected = selectedColor,
-                    onSelect = { selectedColor = it }
-                )
+                    // Stage list + remove
+                    if (stages.isNotEmpty()) {
+                        Text("Stages:", style = MaterialTheme.typography.titleSmall)
+                        stages.forEachIndexed { index, s ->
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "Stage ${index + 1}: in ${s.breathInSeconds}s, hold ${s.holdSeconds}s, out ${s.breathOutSeconds}s, reg ${s.regenerateSeconds}s — ${s.reps} reps",
+                                    modifier = Modifier.weight(1f)
+                                )
+                                TextButton(onClick = {
+                                    stages = stages.toMutableList().also { it.removeAt(index) }
+                                }) { Text("Remove") }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                Text("Color:", style = MaterialTheme.typography.titleMedium)
+
+                ColorPickerRow(colors, selectedColor) {
+                    selectedColor = it
+                }
             }
         },
         confirmButton = {
             TextButton(
-                enabled = allValid,
+                enabled = title.isNotBlank() && stages.isNotEmpty(),
                 onClick = {
                     onConfirm(
-                        CarouselItem(
-                            id = 0, // will be reassigned outside
+                        Workout(
+                            id = 0,
                             title = title.trim(),
                             colorValue = selectedColor.toArgb(),
-                            numOfRounds = rounds.toInt(),
-                            breathCyclesInRound = breaths.toInt(),
-                            breathPacing = pacing.toInt()
+                            stages = stages
                         )
                     )
                 }
-            ) { Text("Add") }
+            ) { Text("Create") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
@@ -280,10 +334,9 @@ fun AddWorkoutDialog(
     )
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WavyBreathingCircle(item: CarouselItem, animate: Boolean) {
+fun WavyBreathingCircle(item: Workout, animate: Boolean) {
 
     val progress by if (animate) {
         val infiniteTransition = rememberInfiniteTransition()
@@ -291,7 +344,7 @@ fun WavyBreathingCircle(item: CarouselItem, animate: Boolean) {
             initialValue = 0f,
             targetValue = 1f,
             animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = item.breathPacing * 1000 * item.breathCyclesInRound, easing = LinearEasing),
+                animation = tween(durationMillis = 10 * 1000 * 30, easing = LinearEasing),
                 repeatMode = RepeatMode.Restart
             )
         )
@@ -303,7 +356,7 @@ fun WavyBreathingCircle(item: CarouselItem, animate: Boolean) {
         val center = Offset(size.width / 2f, size.height / 2f)
         val radius = size.minDimension / 3.5f
         val waveAmplitude = radius / 20f
-        val waveCount = item.breathCyclesInRound
+        val waveCount = item.stages[0].reps
         val segments = 360
 
         val path = Path().apply {

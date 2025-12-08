@@ -6,11 +6,11 @@ import androidx.room.*
 interface WorkoutDao {
 
     @Query("SELECT * FROM workouts ORDER BY id ASC")
-    suspend fun getAll(): List<CarouselItem>
+    suspend fun getAll(): List<Workout>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(item: CarouselItem)
+    suspend fun insert(item: Workout)
 
     @Delete
-    suspend fun delete(item: CarouselItem)
+    suspend fun delete(item: Workout)
 }
